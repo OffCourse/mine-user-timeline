@@ -13,9 +13,14 @@
 (def Kinesis (new AWS.Kinesis))
 
 (defn create-message [tweets]
-  {:StreamName "mined-tweets"
-   :Records (map (fn [tweet] {:Data (.stringify js/JSON (clj->js tweet))
-                              :PartitionKey "url"}) tweets)})
+  {:StreamName "tweeted-bookmarks"
+   :Records (map (fn [tweet]
+                   (let [tweet {:user (-> tweet :user :screen_name)
+                                :url (-> tweet :entities :urls first :expanded_url)
+                                :timestamp (-> tweet :created_at)}]
+                     {:Data (.stringify js/JSON (clj->js tweet))
+                      :PartitionKey "user"}))
+                 tweets)})
 
 (defn send-message [msg]
   (let [c (chan)]
@@ -30,7 +35,6 @@
                      :access_token_secret (.. js/process -env -TWITTER_ACCESS_TOKEN_SECRET)})
 
 (def client (twitter. (clj->js twitter-config)))
-
 
 (defn get-tweets [user-name max-id]
   (let [c (chan)
@@ -76,9 +80,11 @@
 
 (defn ^:export handler [event context cb]
   (go
-    (let [tweets (<! (get-tweets "yeehaa" 752058478366167000))
+    (let [tweets (-> (<! (get-tweets "yeehaa" nil))
+                     (js->clj :keywordize-keys true))
           message (create-message tweets)
           response (<! (send-message message))]
+      (println (.stringify js/JSON (clj->js message)))
       (cb nil (clj->js response)))))
 
 (defn -main [] identity)
