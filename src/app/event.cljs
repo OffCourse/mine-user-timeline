@@ -28,7 +28,7 @@
   (let [records (:Records (js->clj event :keywordize-keys true))
         payload (extract-payload records)
         event-source (extract-event-source (first records))
-        event {:payload payload
+        event {:payload (if (= (count payload) 1) (first payload) payload)
                :type event-source}]
     event))
 
