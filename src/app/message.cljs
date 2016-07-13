@@ -13,7 +13,7 @@
 
 (defmethod create :bookmarks [type twitter-data]
   (when (:has-tweets? twitter-data)
-    (let [bookmarks (spec/conform ::specs/bookmarks (bookmark/extract :many (:tweets twitter-data)))]
+    (let [bookmarks (spec/conform ::specs/bookmarks (bookmark/extract (:tweets twitter-data)))]
       {:StreamName "tweeted-bookmarks"
        :Records (->> bookmarks
                      (map (fn [bookmark]

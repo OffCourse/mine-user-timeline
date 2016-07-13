@@ -1,13 +1,17 @@
-(ns app.bookmark)
+(ns app.bookmark
+  (:require [app.specs :as specs]
+            [cljs.spec :as spec]))
 
-(defmulti extract (fn [type _] type))
+(spec/def ::data (spec/or :one map? :many (spec/* map?)))
 
-(defmethod extract :one [type tweet]
+(defmulti extract (fn [data] (first (spec/conform ::data data))))
+
+(defmethod extract :one [tweet]
   {:user (-> tweet :user :screen_name)
    :url (-> tweet :entities :urls first :expanded_url)
    :timestamp (-> tweet :created_at)})
 
-(defmethod extract :many [type tweets]
+(defmethod extract :many [tweets]
   (->> tweets
-       (map #(extract :one %1))
+       (map #(extract %1))
        (filter #(:url %1))))
