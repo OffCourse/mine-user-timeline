@@ -1,4 +1,4 @@
-(ns app.event
+(ns app.action
   (:require [cljs.spec :as spec]
             [app.specs :as specs]
             [clojure.string :as str]))
@@ -22,7 +22,7 @@
       (str/split "/")
       last))
 
-(spec/fdef convert :ret ::specs/event)
+(spec/fdef convert :ret ::specs/action)
 
 (defn convert [event]
   (let [records (:Records (js->clj event :keywordize-keys true))
@@ -31,5 +31,9 @@
         event {:payload (if (= (count payload) 1) (first payload) payload)
                :type event-source}]
     event))
+
+(defn create [tweets]
+  {:type "mined-tweets"
+   :payload tweets})
 
 #_(spec/instrument #'convert)

@@ -11,25 +11,36 @@
 
 (defmulti create (fn [type _] type))
 
-(defmethod create :bookmarks [type twitter-data]
+#_(defmethod create :bookmarks [type twitter-data]
   (when (:has-tweets? twitter-data)
-    (let [bookmarks (spec/conform ::specs/bookmarks (bookmark/extract (:tweets twitter-data)))]
-      {:StreamName "tweeted-bookmarks"
-       :Records (->> bookmarks
-                     (map (fn [bookmark]
-                            {:Data (.stringify js/JSON (clj->js bookmark))
-                             :PartitionKey "user"})))})))
+    (let [bookmarks (spec/explain-data ::specs/bookmarks (bookmark/extract (:tweets twitter-data)))]
+      (when (not (empty? bookmarks))
+                 {:StreamName "tweeted-bookmarks"
+                  :Records (->> bookmarks
+                                (map (fn [bookmark]
+                                       {:Data (.stringify js/JSON (clj->js bookmark))
+                                        :PartitionKey "user"})))}))))
 
-(defmethod create :user-data [type twitter-data]
+#_(defmethod create :user-data [type twitter-data]
   (when (:has-more? twitter-data)
     {:StreamName "test-channel"
      :Records [(let [data (select-keys twitter-data [:user :min-id])]
                  {:Data (.stringify js/JSON (clj->js data))
                   :PartitionKey "user"})]}))
 
-(defn send [msg]
-  (let [c (chan)]
-    (.putRecords Kinesis (clj->js msg) #(if %1
-                                          (println "error" %1)
-                                          (go (>! c %2))))
+(defn create [{:keys [type payload]} partition-key]
+  {:StreamName type
+   :Records (->> payload
+                 (map (fn [item]
+                        {:Data (.stringify js/JSON (clj->js item))
+                         :PartitionKey partition-key})))})
+
+(defn send [action partition-key]
+  (let [c (chan)
+        message (create action partition-key)]
+    (.putRecords Kinesis
+                 (clj->js message)
+                 #(if %1
+                    (println "error" %1)
+                    (go (>! c %2))))
     c))

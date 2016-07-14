@@ -1,7 +1,7 @@
 (ns app.core
   (:require [cljs.nodejs :as node]
             [app.tweets :as tweets]
-            [app.event :as event]
+            [app.action :as action]
             [app.bookmark :as bookmark]
             [app.message :as message]
             [app.specs :as specs]
@@ -21,19 +21,21 @@
 
 (defn ^:export handler [event context cb]
   (println (.stringify js/JSON (clj->js event)))
-  (let [event (event/convert event)]
-    (if (spec/valid? ::specs/event event)
+  (let [incoming-action (action/convert event)]
+    (if (spec/valid? ::specs/action incoming-action)
       (go
-        (let [{:keys [payload type]} (spec/conform ::specs/event event)
-              twitter-data           (<! (tweets/fetch (second payload)))]
-          (when-let [user-message (message/create :user-data twitter-data)]
+        (let [{:keys [payload type]} (spec/conform ::specs/action incoming-action)
+              twitter-data           (<! (tweets/fetch (second payload)))
+              outgoing-action (action/create (:tweets twitter-data))]
+          #_(when-let [user-message (message/create :user-data twitter-data)]
             (println (.stringify js/JSON (clj->js user-message)))
-            (println (<! (message/send user-message))))
-          (when-let [bookmarks-message (message/create :bookmarks twitter-data)]
-            (println (<! (message/send bookmarks-message)))
-            (println (.stringify js/JSON (clj->js bookmarks-message))))
-          (cb nil (clj->js "completed"))))
-      (handle-error :specs-not-matched (spec/explain-data ::specs/event event) cb))))
+            (println (<! (message/send user-message :user))))
+          (if (spec/valid? ::specs/action outgoing-action)
+            (let [response               (<! (message/send outgoing-action :created_at))]
+              (println (.stringify js/JSON (clj->js outgoing-action)))
+              (cb nil (clj->js response)))
+            (handle-error :invalid-outgoing-action (spec/explain-data ::specs/action outgoing-action) cb))))
+    (handle-error :invalid-incoming-action (spec/explain-data ::specs/action incoming-action) cb))))
 
 (defn -main [] identity)
 (set! *main-cli-fn* -main)
