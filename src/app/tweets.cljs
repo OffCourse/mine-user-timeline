@@ -23,7 +23,7 @@
 (defn fetch [{:keys [user min-id]}]
   (let [c      (chan)
         params {:screen_name user
-                :count       4}
+                :count      5}
         params (if min-id (assoc params :max_id min-id) params)]
     (.get client
           "statuses/user_timeline"
