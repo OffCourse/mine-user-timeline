@@ -12,18 +12,18 @@
 
 (def client (twitter. (clj->js twitter-config)))
 
-(defn process [tweets user-name old-min-id]
-  (let [new-min-id (or (apply min (map :id tweets)) 0)]
+(defn process [tweets user old-min-id]
+  (let [new-min-id (apply min (map :id tweets))]
     {:tweets      tweets
-     :user        user-name
+     :user        user
      :min-id      new-min-id
      :has-tweets? (> (count tweets) 0)
      :has-more?   (or (not old-min-id) (> old-min-id new-min-id))}))
 
 (defn fetch [{:keys [user min-id]}]
   (let [c      (chan)
-        params {:screen_name user
-                :count      5}
+        params {:screen_name "offcourse_"
+                :count       5}
         params (if min-id (assoc params :max_id min-id) params)]
     (.get client
           "statuses/user_timeline"

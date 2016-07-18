@@ -2,6 +2,7 @@
   (:require [cljs.nodejs :as node]
             [app.specs :as specs]
             [app.bookmark :as bookmark]
+            [app.logger :as logger]
             [cljs.spec :as spec]
             [cljs.core.async :refer [<! put! close! chan >!]])
   (:require-macros [cljs.core.async.macros :refer [go]]))
@@ -19,6 +20,7 @@
 (defn send [action partition-key]
   (let [c (chan)
         message (create action partition-key)]
+    (logger/log "OUTGOING: " message)
     (.putRecords Kinesis (clj->js message)
                  #(if %1
                     (println "error" %1)

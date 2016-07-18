@@ -5,7 +5,7 @@
 (spec/def ::timestamp string?)
 (spec/def ::user string?)
 (spec/def ::url string?)
-(spec/def ::min-id string?)
+(spec/def ::min-id int?)
 
 (spec/def ::entities map?)
 (spec/def ::created_at string?)
